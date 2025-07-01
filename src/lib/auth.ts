@@ -34,7 +34,10 @@ export class AuthService {
           nome,
         });
 
-      if (profileError) throw profileError;
+      if (profileError) {
+        console.error('Error creating profile:', profileError);
+        // Não lançar erro aqui para não bloquear o cadastro
+      }
     }
 
     return data;
@@ -56,25 +59,37 @@ export class AuthService {
   }
 
   static async getCurrentUser(): Promise<AuthUser | null> {
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    if (!user) return null;
+    try {
+      const { data: { user }, error } = await supabase.auth.getUser();
+      
+      if (error) {
+        console.error('Error getting user:', error);
+        return null;
+      }
+      
+      if (!user) return null;
 
-    // Buscar perfil do usuário
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('nome, avatar_url, moeda, tema')
-      .eq('id', user.id)
-      .maybeSingle();
+      // Buscar perfil do usuário (opcional)
+      try {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('nome, avatar_url, moeda, tema')
+          .eq('id', user.id)
+          .maybeSingle();
 
-    if (profileError) {
-      console.error('Error fetching user profile:', profileError);
+        return {
+          ...user,
+          profile: profile || undefined,
+        };
+      } catch (profileError) {
+        console.error('Error fetching user profile:', profileError);
+        // Retornar usuário mesmo sem perfil
+        return user as AuthUser;
+      }
+    } catch (error) {
+      console.error('Error in getCurrentUser:', error);
+      return null;
     }
-
-    return {
-      ...user,
-      profile: profile || undefined,
-    };
   }
 
   static async updateProfile(updates: {
@@ -106,10 +121,15 @@ export class AuthService {
 
   static onAuthStateChange(callback: (user: AuthUser | null) => void) {
     return supabase.auth.onAuthStateChange(async (event, session) => {
-      if (session?.user) {
-        const user = await this.getCurrentUser();
-        callback(user);
-      } else {
+      try {
+        if (session?.user) {
+          const user = await this.getCurrentUser();
+          callback(user);
+        } else {
+          callback(null);
+        }
+      } catch (error) {
+        console.error('Error in auth state change:', error);
         callback(null);
       }
     });

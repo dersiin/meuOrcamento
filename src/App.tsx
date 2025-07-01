@@ -15,16 +15,39 @@ function App() {
   const [currentPage, setCurrentPage] = useState('dashboard');
 
   useEffect(() => {
+    let mounted = true;
+
     // Verificar se há usuário logado
-    AuthService.getCurrentUser().then(user => {
-      setUser(user);
-      setLoading(false);
-    });
+    const checkUser = async () => {
+      try {
+        const currentUser = await AuthService.getCurrentUser();
+        if (mounted) {
+          setUser(currentUser);
+          setLoading(false);
+        }
+      } catch (error) {
+        console.error('Error checking user:', error);
+        if (mounted) {
+          setUser(null);
+          setLoading(false);
+        }
+      }
+    };
+
+    checkUser();
 
     // Escutar mudanças no estado de autenticação
-    const { data: { subscription } } = AuthService.onAuthStateChange(setUser);
+    const { data: { subscription } } = AuthService.onAuthStateChange((user) => {
+      if (mounted) {
+        setUser(user);
+        setLoading(false);
+      }
+    });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const renderPage = () => {
@@ -58,7 +81,9 @@ function App() {
   }
 
   if (!user) {
-    return <AuthPage onSuccess={() => setLoading(true)} />;
+    return <AuthPage onSuccess={() => {
+      // Não precisamos fazer nada aqui, o onAuthStateChange vai lidar com isso
+    }} />;
   }
 
   return (
