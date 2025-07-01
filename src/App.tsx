@@ -1,13 +1,31 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { AuthPage } from './components/Auth/AuthPage';
 import { Layout } from './components/Layout';
 import { Dashboard } from './components/Dashboard';
 import { Lancamentos } from './components/Lancamentos';
 import { Contas } from './components/Contas';
 import { Categorias } from './components/Categorias';
+import { MetasFinanceiras } from './components/Metas/MetasFinanceiras';
 import { Configuracoes } from './components/Configuracoes';
+import { AuthService, type AuthUser } from './lib/auth';
 
 function App() {
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState('dashboard');
+
+  useEffect(() => {
+    // Verificar se há usuário logado
+    AuthService.getCurrentUser().then(user => {
+      setUser(user);
+      setLoading(false);
+    });
+
+    // Escutar mudanças no estado de autenticação
+    const { data: { subscription } } = AuthService.onAuthStateChange(setUser);
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   const renderPage = () => {
     switch (currentPage) {
@@ -19,6 +37,8 @@ function App() {
         return <Contas />;
       case 'categorias':
         return <Categorias />;
+      case 'metas':
+        return <MetasFinanceiras />;
       case 'configuracoes':
         return <Configuracoes />;
       default:
@@ -26,8 +46,27 @@ function App() {
     }
   };
 
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Carregando...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <AuthPage onSuccess={() => setLoading(true)} />;
+  }
+
   return (
-    <Layout currentPage={currentPage} onPageChange={setCurrentPage}>
+    <Layout 
+      currentPage={currentPage} 
+      onPageChange={setCurrentPage}
+      user={user}
+    >
       {renderPage()}
     </Layout>
   );

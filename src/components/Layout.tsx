@@ -4,16 +4,21 @@ import {
   PlusCircle, 
   CreditCard, 
   Tags, 
+  Target,
   Settings,
   Menu,
   X,
-  DollarSign
+  DollarSign,
+  LogOut,
+  User
 } from 'lucide-react';
+import { AuthService, type AuthUser } from '../lib/auth';
 
 interface LayoutProps {
   children: React.ReactNode;
   currentPage: string;
   onPageChange: (page: string) => void;
+  user: AuthUser;
 }
 
 const menuItems = [
@@ -21,11 +26,20 @@ const menuItems = [
   { id: 'lancamentos', label: 'Lançamentos', icon: PlusCircle },
   { id: 'contas', label: 'Contas', icon: CreditCard },
   { id: 'categorias', label: 'Categorias', icon: Tags },
+  { id: 'metas', label: 'Metas', icon: Target },
   { id: 'configuracoes', label: 'Configurações', icon: Settings },
 ];
 
-export function Layout({ children, currentPage, onPageChange }: LayoutProps) {
+export function Layout({ children, currentPage, onPageChange, user }: LayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  const handleSignOut = async () => {
+    try {
+      await AuthService.signOut();
+    } catch (error) {
+      console.error('Erro ao fazer logout:', error);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -58,7 +72,22 @@ export function Layout({ children, currentPage, onPageChange }: LayoutProps) {
           </button>
         </div>
 
-        <nav className="mt-8">
+        {/* User Info */}
+        <div className="p-4 border-b border-gray-200">
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+              <User className="w-5 h-5 text-blue-600" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-gray-900 truncate">
+                {user.profile?.nome || user.email}
+              </p>
+              <p className="text-xs text-gray-500 truncate">{user.email}</p>
+            </div>
+          </div>
+        </div>
+
+        <nav className="mt-4">
           <div className="px-3 space-y-1">
             {menuItems.map((item) => {
               const Icon = item.icon;
@@ -88,8 +117,15 @@ export function Layout({ children, currentPage, onPageChange }: LayoutProps) {
         </nav>
 
         <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-200">
-          <div className="text-xs text-gray-500 text-center">
-            100% Local & Privado
+          <button
+            onClick={handleSignOut}
+            className="w-full flex items-center space-x-2 px-3 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-colors"
+          >
+            <LogOut className="w-4 h-4" />
+            <span>Sair</span>
+          </button>
+          <div className="text-xs text-gray-500 text-center mt-2">
+            Sincronizado na nuvem ☁️
           </div>
         </div>
       </div>
