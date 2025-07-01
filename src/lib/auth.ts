@@ -61,15 +61,19 @@ export class AuthService {
     if (!user) return null;
 
     // Buscar perfil do usuário
-    const { data: profile } = await supabase
+    const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('nome, avatar_url, moeda, tema')
       .eq('id', user.id)
-      .single();
+      .maybeSingle();
+
+    if (profileError) {
+      console.error('Error fetching user profile:', profileError);
+    }
 
     return {
       ...user,
-      profile,
+      profile: profile || undefined,
     };
   }
 
