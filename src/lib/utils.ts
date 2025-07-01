@@ -1,6 +1,5 @@
 import { format, startOfMonth, endOfMonth, addMonths, parseISO, subMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Lancamento, Categoria } from './store';
 
 export function formatCurrency(value: number): string {
   return new Intl.NumberFormat('pt-BR', {
@@ -19,7 +18,25 @@ export function formatDateForInput(date: string | Date): string {
   return format(dateObj, 'yyyy-MM-dd');
 }
 
-export function getCurrentMonthTransactions(lancamentos: Lancamento[]): Lancamento[] {
+export function formatDateTime(date: string | Date): string {
+  const dateObj = typeof date === 'string' ? parseISO(date) : date;
+  return format(dateObj, 'dd/MM/yyyy HH:mm', { locale: ptBR });
+}
+
+export function formatRelativeDate(date: string | Date): string {
+  const dateObj = typeof date === 'string' ? parseISO(date) : date;
+  const now = new Date();
+  const diffInDays = Math.floor((now.getTime() - dateObj.getTime()) / (1000 * 60 * 60 * 24));
+  
+  if (diffInDays === 0) return 'Hoje';
+  if (diffInDays === 1) return 'Ontem';
+  if (diffInDays < 7) return `${diffInDays} dias atrás`;
+  if (diffInDays < 30) return `${Math.floor(diffInDays / 7)} semanas atrás`;
+  if (diffInDays < 365) return `${Math.floor(diffInDays / 30)} meses atrás`;
+  return `${Math.floor(diffInDays / 365)} anos atrás`;
+}
+
+export function getCurrentMonthTransactions(lancamentos: any[]): any[] {
   const hoje = new Date();
   const inicioMes = startOfMonth(hoje);
   const fimMes = endOfMonth(hoje);
@@ -30,13 +47,13 @@ export function getCurrentMonthTransactions(lancamentos: Lancamento[]): Lancamen
   });
 }
 
-export function calculateFinancialSummary(lancamentos: Lancamento[]) {
+export function calculateFinancialSummary(lancamentos: any[]) {
   const receitas = lancamentos
-    .filter((l) => l.tipo === 'RECEITA')
+    .filter((l) => l.tipo === 'RECEITA' && l.status === 'CONFIRMADO')
     .reduce((sum, l) => sum + l.valor, 0);
     
   const despesas = lancamentos
-    .filter((l) => l.tipo === 'DESPESA')
+    .filter((l) => l.tipo === 'DESPESA' && l.status === 'CONFIRMADO')
     .reduce((sum, l) => sum + l.valor, 0);
     
   const saldo = receitas - despesas;
@@ -45,16 +62,16 @@ export function calculateFinancialSummary(lancamentos: Lancamento[]) {
 }
 
 export function groupExpensesByCategory(
-  lancamentos: Lancamento[],
-  categorias: Categoria[]
+  lancamentos: any[],
+  categorias: any[]
 ): Array<{ nome: string; valor: number; cor: string; porcentagem: number }> {
-  const despesas = lancamentos.filter((l) => l.tipo === 'DESPESA');
+  const despesas = lancamentos.filter((l) => l.tipo === 'DESPESA' && l.status === 'CONFIRMADO');
   const totalDespesas = despesas.reduce((sum, l) => sum + l.valor, 0);
   
   if (totalDespesas === 0) return [];
   
   const grupos = despesas.reduce((acc, lancamento) => {
-    const categoria = categorias.find((c) => c.id === lancamento.categoriaId);
+    const categoria = categorias.find((c) => c.id === lancamento.categoria_id);
     if (!categoria) return acc;
     
     if (!acc[categoria.id]) {
@@ -78,7 +95,7 @@ export function groupExpensesByCategory(
     .sort((a, b) => b.valor - a.valor);
 }
 
-export function getMonthlyEvolution(lancamentos: Lancamento[]): Array<{
+export function getMonthlyEvolution(lancamentos: any[]): Array<{
   mes: string;
   receitas: number;
   despesas: number;
@@ -95,7 +112,7 @@ export function getMonthlyEvolution(lancamentos: Lancamento[]): Array<{
     
     const transacoesMes = lancamentos.filter((lancamento) => {
       const dataLancamento = parseISO(lancamento.data);
-      return dataLancamento >= inicioMes && dataLancamento <= fimMes;
+      return dataLancamento >= inicioMes && dataLancamento <= fimMes && lancamento.status === 'CONFIRMADO';
     });
     
     const { receitas, despesas, saldo } = calculateFinancialSummary(transacoesMes);
@@ -112,14 +129,14 @@ export function getMonthlyEvolution(lancamentos: Lancamento[]): Array<{
 }
 
 export function getTopCategories(
-  lancamentos: Lancamento[],
-  categorias: Categoria[],
+  lancamentos: any[],
+  categorias: any[],
   limit: number = 5
 ): Array<{ nome: string; valor: number; cor: string }> {
-  const despesas = lancamentos.filter((l) => l.tipo === 'DESPESA');
+  const despesas = lancamentos.filter((l) => l.tipo === 'DESPESA' && l.status === 'CONFIRMADO');
   
   const grupos = despesas.reduce((acc, lancamento) => {
-    const categoria = categorias.find((c) => c.id === lancamento.categoriaId);
+    const categoria = categorias.find((c) => c.id === lancamento.categoria_id);
     if (!categoria) return acc;
     
     if (!acc[categoria.id]) {
@@ -140,14 +157,14 @@ export function getTopCategories(
 }
 
 export function createParcelaLancamentos(
-  dadosBase: Omit<Lancamento, 'id' | 'compraParceladaId' | 'parcelaAtual' | 'totalParcelas'>,
+  dadosBase: any,
   numeroParcelas: number
-): Omit<Lancamento, 'id'>[] {
+): any[] {
   const compraParceladaId = crypto.randomUUID();
-  const valorParcela = Math.round((dadosBase.valor / numeroParcelas) * 100) / 100; // Arredonda para 2 casas decimais
+  const valorParcela = Math.round((dadosBase.valor / numeroParcelas) * 100) / 100;
   const dataBase = parseISO(dadosBase.data);
   
-  const parcelas: Omit<Lancamento, 'id'>[] = [];
+  const parcelas: any[] = [];
   
   for (let i = 0; i < numeroParcelas; i++) {
     const dataParcela = addMonths(dataBase, i);
@@ -162,9 +179,9 @@ export function createParcelaLancamentos(
       valor: valorFinal,
       data: format(dataParcela, 'yyyy-MM-dd'),
       descricao: `${dadosBase.descricao} (${i + 1}/${numeroParcelas})`,
-      compraParceladaId,
-      parcelaAtual: i + 1,
-      totalParcelas: numeroParcelas,
+      compra_parcelada_id: compraParceladaId,
+      parcela_atual: i + 1,
+      total_parcelas: numeroParcelas,
     });
   }
   
@@ -221,4 +238,60 @@ export function formatPercentage(value: number): string {
 export function calculateGrowthRate(current: number, previous: number): number {
   if (previous === 0) return current > 0 ? 100 : 0;
   return ((current - previous) / previous) * 100;
+}
+
+export function debounce<T extends (...args: any[]) => any>(
+  func: T,
+  wait: number
+): (...args: Parameters<T>) => void {
+  let timeout: NodeJS.Timeout;
+  return (...args: Parameters<T>) => {
+    clearTimeout(timeout);
+    timeout = setTimeout(() => func(...args), wait);
+  };
+}
+
+export function generateId(): string {
+  return crypto.randomUUID();
+}
+
+export function classNames(...classes: (string | undefined | null | false)[]): string {
+  return classes.filter(Boolean).join(' ');
+}
+
+export function truncateText(text: string, maxLength: number): string {
+  if (text.length <= maxLength) return text;
+  return text.slice(0, maxLength) + '...';
+}
+
+export function formatFileSize(bytes: number): string {
+  if (bytes === 0) return '0 Bytes';
+  
+  const k = 1024;
+  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+export function isValidDate(date: any): boolean {
+  return date instanceof Date && !isNaN(date.getTime());
+}
+
+export function getInitials(name: string): string {
+  return name
+    .split(' ')
+    .map(word => word.charAt(0))
+    .join('')
+    .toUpperCase()
+    .slice(0, 2);
+}
+
+export function generateColor(): string {
+  const colors = [
+    '#EF4444', '#F97316', '#F59E0B', '#EAB308', '#84CC16', '#22C55E',
+    '#10B981', '#14B8A6', '#06B6D4', '#0EA5E9', '#3B82F6', '#6366F1',
+    '#8B5CF6', '#A855F7', '#D946EF', '#EC4899', '#F43F5E', '#64748B'
+  ];
+  return colors[Math.floor(Math.random() * colors.length)];
 }

@@ -10,7 +10,9 @@ import {
   X,
   DollarSign,
   LogOut,
-  User
+  User,
+  Bell,
+  Search
 } from 'lucide-react';
 import { AuthService, type AuthUser } from '../lib/auth';
 
@@ -53,42 +55,50 @@ export function Layout({ children, currentPage, onPageChange, user }: LayoutProp
 
       {/* Sidebar */}
       <div className={`
-        fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-lg transform transition-transform duration-300 ease-in-out
+        fixed inset-y-0 left-0 z-50 w-72 bg-white shadow-xl transform transition-transform duration-300 ease-in-out
         ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
         lg:translate-x-0 lg:static lg:inset-0
       `}>
-        <div className="flex items-center justify-between h-16 px-6 border-b border-gray-200">
-          <div className="flex items-center space-x-2">
-            <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-              <DollarSign className="w-5 h-5 text-white" />
+        {/* Sidebar Header */}
+        <div className="flex items-center justify-between h-16 px-6 border-b border-gray-200 bg-gradient-to-r from-blue-600 to-purple-600">
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 bg-white bg-opacity-20 rounded-xl flex items-center justify-center">
+              <DollarSign className="w-6 h-6 text-white" />
             </div>
-            <h1 className="text-xl font-bold text-gray-900">Meu Orçamento</h1>
+            <div>
+              <h1 className="text-xl font-bold text-white">FinanceApp</h1>
+              <p className="text-xs text-blue-100">Gestão Inteligente</p>
+            </div>
           </div>
           <button
             onClick={() => setSidebarOpen(false)}
-            className="lg:hidden p-2 rounded-md hover:bg-gray-100 transition-colors"
+            className="lg:hidden p-2 rounded-lg hover:bg-white hover:bg-opacity-20 transition-colors"
           >
-            <X className="w-5 h-5" />
+            <X className="w-5 h-5 text-white" />
           </button>
         </div>
 
-        {/* User Info */}
-        <div className="p-4 border-b border-gray-200">
+        {/* User Profile */}
+        <div className="p-6 border-b border-gray-200 bg-gradient-to-b from-gray-50 to-white">
           <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-              <User className="w-5 h-5 text-blue-600" />
+            <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center">
+              <User className="w-6 h-6 text-white" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-gray-900 truncate">
-                {user.profile?.nome || user.email}
+              <p className="text-sm font-semibold text-gray-900 truncate">
+                {user.profile?.nome || 'Usuário'}
               </p>
               <p className="text-xs text-gray-500 truncate">{user.email}</p>
             </div>
+            <button className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors">
+              <Bell className="w-4 h-4" />
+            </button>
           </div>
         </div>
 
-        <nav className="mt-4">
-          <div className="px-3 space-y-1">
+        {/* Navigation */}
+        <nav className="flex-1 px-4 py-6">
+          <div className="space-y-2">
             {menuItems.map((item) => {
               const Icon = item.icon;
               const isActive = currentPage === item.id;
@@ -101,52 +111,71 @@ export function Layout({ children, currentPage, onPageChange, user }: LayoutProp
                     setSidebarOpen(false);
                   }}
                   className={`
-                    w-full flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-all duration-200
+                    w-full flex items-center px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200 group
                     ${isActive 
-                      ? 'bg-blue-50 text-blue-700 border-r-2 border-blue-700' 
-                      : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                      ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg' 
+                      : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
                     }
                   `}
                 >
-                  <Icon className={`w-5 h-5 mr-3 ${isActive ? 'text-blue-700' : 'text-gray-400'}`} />
+                  <Icon className={`w-5 h-5 mr-3 ${
+                    isActive ? 'text-white' : 'text-gray-400 group-hover:text-gray-600'
+                  }`} />
                   {item.label}
+                  {isActive && (
+                    <div className="ml-auto w-2 h-2 bg-white rounded-full"></div>
+                  )}
                 </button>
               );
             })}
           </div>
         </nav>
 
-        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-200">
+        {/* Sidebar Footer */}
+        <div className="p-4 border-t border-gray-200">
           <button
             onClick={handleSignOut}
-            className="w-full flex items-center space-x-2 px-3 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-colors"
+            className="w-full flex items-center space-x-3 px-4 py-3 text-sm text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all duration-200"
           >
-            <LogOut className="w-4 h-4" />
-            <span>Sair</span>
+            <LogOut className="w-5 h-5" />
+            <span>Sair da conta</span>
           </button>
-          <div className="text-xs text-gray-500 text-center mt-2">
-            Sincronizado na nuvem ☁️
+          
+          <div className="mt-4 text-center">
+            <div className="inline-flex items-center space-x-1 text-xs text-gray-500">
+              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+              <span>Sincronizado na nuvem</span>
+            </div>
           </div>
         </div>
       </div>
 
       {/* Main content */}
-      <div className="lg:pl-64">
+      <div className="lg:pl-72">
         {/* Top bar for mobile */}
-        <div className="lg:hidden flex items-center justify-between h-16 px-4 bg-white border-b border-gray-200">
+        <div className="lg:hidden flex items-center justify-between h-16 px-4 bg-white border-b border-gray-200 shadow-sm">
           <button
             onClick={() => setSidebarOpen(true)}
-            className="p-2 rounded-md hover:bg-gray-100 transition-colors"
+            className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
           >
             <Menu className="w-6 h-6" />
           </button>
-          <h1 className="text-lg font-semibold text-gray-900">Meu Orçamento</h1>
+          
+          <div className="flex items-center space-x-2">
+            <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
+              <DollarSign className="w-4 h-4 text-white" />
+            </div>
+            <h1 className="text-lg font-semibold text-gray-900">FinanceApp</h1>
+          </div>
+          
           <div className="w-10" /> {/* Spacer for balance */}
         </div>
 
         {/* Page content */}
-        <main className="p-4 lg:p-8">
-          {children}
+        <main className="p-6 lg:p-8">
+          <div className="max-w-7xl mx-auto">
+            {children}
+          </div>
         </main>
       </div>
     </div>
