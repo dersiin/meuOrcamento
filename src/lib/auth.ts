@@ -62,28 +62,24 @@ export class AuthService {
     try {
       const { data: { user }, error } = await supabase.auth.getUser();
       
-      if (error) {
-        console.error('Error getting user:', error);
+      if (error || !user) {
         return null;
       }
-      
-      if (!user) return null;
 
-      // Buscar perfil do usuário (opcional)
+      // Buscar perfil do usuário (opcional, não bloquear se falhar)
       try {
         const { data: profile } = await supabase
           .from('profiles')
           .select('nome, avatar_url, moeda, tema')
           .eq('id', user.id)
-          .maybeSingle();
+          .single();
 
         return {
           ...user,
           profile: profile || undefined,
         };
       } catch (profileError) {
-        console.error('Error fetching user profile:', profileError);
-        // Retornar usuário mesmo sem perfil
+        // Se não conseguir buscar o perfil, retornar só o usuário
         return user as AuthUser;
       }
     } catch (error) {
@@ -121,15 +117,10 @@ export class AuthService {
 
   static onAuthStateChange(callback: (user: AuthUser | null) => void) {
     return supabase.auth.onAuthStateChange(async (event, session) => {
-      try {
-        if (session?.user) {
-          const user = await this.getCurrentUser();
-          callback(user);
-        } else {
-          callback(null);
-        }
-      } catch (error) {
-        console.error('Error in auth state change:', error);
+      if (session?.user) {
+        // Não buscar perfil aqui para evitar loops
+        callback(session.user as AuthUser);
+      } else {
         callback(null);
       }
     });

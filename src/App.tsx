@@ -17,23 +17,26 @@ function App() {
   useEffect(() => {
     let mounted = true;
 
-    // Verificar se há usuário logado
+    // Função para verificar usuário atual
     const checkUser = async () => {
       try {
         const currentUser = await AuthService.getCurrentUser();
         if (mounted) {
           setUser(currentUser);
-          setLoading(false);
         }
       } catch (error) {
         console.error('Error checking user:', error);
         if (mounted) {
           setUser(null);
+        }
+      } finally {
+        if (mounted) {
           setLoading(false);
         }
       }
     };
 
+    // Verificar usuário inicial
     checkUser();
 
     // Escutar mudanças no estado de autenticação
@@ -69,6 +72,7 @@ function App() {
     }
   };
 
+  // Tela de carregamento
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -80,12 +84,14 @@ function App() {
     );
   }
 
+  // Tela de autenticação
   if (!user) {
     return <AuthPage onSuccess={() => {
-      // Não precisamos fazer nada aqui, o onAuthStateChange vai lidar com isso
+      // O onAuthStateChange vai lidar com a mudança de estado
     }} />;
   }
 
+  // App principal
   return (
     <Layout 
       currentPage={currentPage} 
